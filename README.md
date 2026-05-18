@@ -2,7 +2,7 @@
 
 > A zero-install, AI-powered stock portfolio dashboard that lives in a single HTML file — live prices, smart charts, a rebalancing tool, and a streaming AI chat that knows your exact holdings.
 
-![Dark dashboard with holdings table, allocation charts, and AI chat sidebar](https://img.shields.io/badge/status-live-brightgreen) ![License MIT](https://img.shields.io/badge/license-MIT-blue) ![No build step](https://img.shields.io/badge/build%20step-none-success) ![Powered by Groq](https://img.shields.io/badge/LLM-Groq%20%7C%20Llama%203.3%2070B-orange)
+![Dark dashboard with holdings table, allocation charts, and AI chat sidebar](https://img.shields.io/badge/status-live-brightgreen) ![License MIT](https://img.shields.io/badge/license-MIT-blue) ![No build step](https://img.shields.io/badge/build%20step-none-success) ![Powered by Groq](https://img.shields.io/badge/LLM-Groq%20%7C%20Llama%203.3%2070B-orange) ![10 Tabs](https://img.shields.io/badge/tabs-10%20quant%20tools-purple)
 
 ---
 
@@ -58,6 +58,45 @@ Set a target % allocation per holding using sliders (or hit **Equal Weight** to 
 - Whether to buy or sell, how many shares, and the exact dollar amount
 
 No math required — just set your targets and hit Calculate.
+
+### Risk Analytics ⚡
+Institutional-grade risk metrics computed from 90 days of live price history:
+- **Sharpe & Sortino ratios** — risk-adjusted return, with and without downside-only penalty
+- **Annualized Volatility** — realized vol from daily returns
+- **Max Drawdown** — worst peak-to-trough loss over the window
+- **VaR & CVaR (95%)** — historical Value-at-Risk and Conditional VaR (expected shortfall)
+- **Beta vs SPY** — market sensitivity of the full portfolio
+- **Correlation heatmap** — full pairwise Pearson correlation matrix, color-coded
+
+### Monte Carlo Simulation
+Runs 500 correlated Geometric Brownian Motion paths using Cholesky decomposition of the realized covariance matrix. Shows a fan chart with P5 / P50 / P95 outcome bands over a 252-day horizon. The bottom panel displays summary statistics: expected value, median, and worst-case 5th-percentile outcome.
+
+### Efficient Frontier
+Samples 2,000 random portfolios using Dirichlet-like weight draws and plots them on a return vs. volatility scatter chart colored by Sharpe ratio. Automatically annotates the **minimum volatility** and **maximum Sharpe** portfolios with their exact weightings — no convex optimizer needed.
+
+### Rolling Metrics
+30-day rolling windows of three key metrics charted over time:
+- **Rolling Sharpe** — how risk-adjusted performance has evolved
+- **Rolling Volatility** — annualized realized vol through the window
+- **Rolling Beta vs SPY** — how market sensitivity has shifted
+
+Useful for spotting regime changes and whether your edge is stable.
+
+### Black-Scholes Options Calculator
+Full European options pricing engine in the browser:
+- Input any ticker (auto-fills live price), strike, expiry, vol, risk-free rate
+- Outputs **Call and Put prices** plus the complete Greeks: **Delta, Gamma, Theta, Vega, Rho**
+- Greeks update instantly as you adjust inputs — no submit required
+
+Built to practice quant interview questions and price real options on your holdings.
+
+### Performance Attribution
+Breaks down your portfolio's return over the last 90 days position-by-position and compares it to SPY. For each holding, shows:
+- **Contribution** = start weight × period return
+- **SPY benchmark return** for the same period
+- Side-by-side bar chart of each position's alpha vs. benchmark
+
+Instantly shows you which positions drove outperformance and which dragged returns.
 
 ---
 
