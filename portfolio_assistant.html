@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Portfolio Assistant</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:#1e293b}
+::-webkit-scrollbar-thumb{background:#475569;border-radius:3px}
+.tab-active{border-bottom:2px solid #10b981;color:#34d399}
+.tab-inactive{border-bottom:2px solid transparent;color:#94a3b8}
+.tab-inactive:hover{color:#e2e8f0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin 1s linear infinite}
+@keyframes blink{50%{opacity:0}}
+.cursor::after{content:'▋';animation:blink 1s step-start infinite;color:#10b981}
+.prose-chat strong{font-weight:700;color:#f1f5f9}
+.prose-chat em{font-style:italic}
+.prose-chat code{background:#334155;padding:1px 4px;border-radius:3px;font-size:0.8em;font-family:monospace}
+.prose-chat li{margin-left:1em;list-style:disc}
+.prose-chat h3{font-weight:700;color:#f1f5f9;margin:6px 0 2px}
+.row-hover:hover{background:rgba(30,41,59,0.6)}
+</style>
+</head>
+<body class="bg-slate-900 text-slate-100" style="height:100vh;display:flex;flex-direction:column;overflow:hidden">
+
+<!-- TOP BAR -->
+<div class="bg-slate-800 border-b border-slate-700 px-4 py-2 flex items-center gap-4 flex-shrink-0">
+  <div class="flex items-center gap-2 flex-shrink-0">
+    <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+    <span class="font-bold text-white">Portfolio AI</span>
+  </div>
+
+  <div class="flex-1 flex items-center justify-center gap-8">
+    <div class="text-center">
+      <div class="text-xs text-slate-500 uppercase tracking-wider">Total Value</div>
+      <div id="hdr-value" class="text-xl font-bold text-white">—</div>
+    </div>
+    <div class="text-center">
+      <div class="text-xs text-slate-500 uppercase tracking-wider">Total Gain/Loss</div>
+      <div id="hdr-gl" class="text-lg font-semibold text-slate-400">—</div>
+    </div>
+    <div class="text-center">
+      <div class="text-xs text-slate-500 uppercase tracking-wider">Day Change</div>
+      <div id="hdr-day" class="text-lg font-semibold text-slate-400">—</div>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-3 flex-shrink-0">
+    <span id="lbl-updated" class="text-xs text-slate-500">Not updated</span>
+    <button onclick="refreshAll()" class="flex items-center gap-1 bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg text-xs transition-colors">
+      <svg id="ico-refresh" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Refresh
+    </button>
+    <input id="inp-key" type="password" placeholder="Groq API Key" oninput="S.apiKey=this.value"
+      class="bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-xs w-44 focus:outline-none focus:border-emerald-500 placeholder-slate-500"
+      value="__GROQ_KEY__">
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="flex flex-1 overflow-hidden">
+
+  <!-- LEFT PANEL -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+
+    <!-- TABS -->
+    <div class="bg-slate-800 border-b border-slate-700 flex flex-shrink-0">
+      <button onclick="setTab('holdings')" id="t-holdings" class="px-5 py-2.5 text-sm font-medium tab-active transition-colors">Holdings</button>
+      <button onclick="setTab('charts')"   id="t-charts"   class="px-5 py-2.5 text-sm font-medium tab-inactive transition-colors">Charts</button>
+      <button onclick="setTab('watch')"    id="t-watch"    class="px-5 py-2.5 text-sm font-medium tab-inactive transition-colors">Watchlist</button>
+      <button onclick="setTab('rebal')"    id="t-rebal"    class="px-5 py-2.5 text-sm font-medium tab-inactive transition-colors">Rebalance</button>
+    </div>
+
+    <!-- TAB CONTENT -->
+    <div class="flex-1 overflow-y-auto">
+
+      <!-- HOLDINGS -->
+      <div id="tab-holdings" class="p-4">
+        <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 mb-4">
+          <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Add Position</div>
+          <div class="flex flex-wrap gap-2">
+            <input id="in-ticker" type="text" placeholder="Ticker" maxlength="10" oninput="this.value=this.value.toUpperCase()"
+              class="bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-sm w-24 focus:outline-none focus:border-emerald-500 uppercase">
+            <input id="in-shares" type="number" placeholder="Shares" min="0" step="0.01"
+              class="bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-sm w-24 focus:outline-none focus:border-emerald-500">
+            <input id="in-cost" type="number" placeholder="Avg Cost $" min="0" step="0.01"
+              class="bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-sm w-28 focus:outline-none focus:border-emerald-500">
+            <select id="in-sector" class="bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-emerald-500">
+              <option>Technology</option><option>Communication Services</option><option>Financials</option>
+              <option>Healthcare</option><option>Consumer Discretionary</option><option>Consumer Staples</option>
+              <option>Industrials</option><option>Energy</option><option>Utilities</option>
+              <option>Real Estate</option><option>Materials</option><option>ETF/Diversified</option>
+            </select>
+            <button onclick="addHolding()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors">Add</button>
+          </div>
+        </div>
+
+        <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-slate-500 text-xs uppercase tracking-wider border-b border-slate-700">
+                <th class="text-left px-4 py-2.5">Ticker</th>
+                <th class="text-left px-4 py-2.5 hidden lg:table-cell">Sector</th>
+                <th class="text-right px-4 py-2.5">Shares</th>
+                <th class="text-right px-4 py-2.5">Avg Cost</th>
+                <th class="text-right px-4 py-2.5">Price</th>
+                <th class="text-right px-4 py-2.5">Value</th>
+                <th class="text-right px-4 py-2.5">Gain/Loss</th>
+                <th class="text-right px-4 py-2.5">%</th>
+                <th class="text-right px-4 py-2.5">Day Chg</th>
+                <th class="px-3 py-2.5"></th>
+              </tr>
+            </thead>
+            <tbody id="tbl-holdings"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CHARTS -->
+      <div id="tab-charts" class="p-4 hidden">
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">By Position</div>
+            <div style="height:260px;position:relative"><canvas id="chart-alloc"></canvas></div>
+          </div>
+          <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">By Sector</div>
+            <div style="height:260px;position:relative"><canvas id="chart-sector"></canvas></div>
+          </div>
+        </div>
+        <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
+          <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Unrealized Gain/Loss by Position</div>
+          <div style="height:200px;position:relative"><canvas id="chart-gl"></canvas></div>
+        </div>
+      </div>
+
+      <!-- WATCHLIST -->
+      <div id="tab-watch" class="p-4 hidden">
+        <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 mb-4">
+          <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Add to Watchlist</div>
+          <div class="flex gap-2 flex-wrap">
+            <input id="in-wticker" type="text" placeholder="Ticker" oninput="this.value=this.value.toUpperCase()"
+              class="bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-sm w-24 focus:outline-none focus:border-emerald-500">
+            <input id="in-wtarget" type="number" placeholder="Target Buy Price $" step="0.01"
+              class="bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-sm w-40 focus:outline-none focus:border-emerald-500">
+            <button onclick="addWatch()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors">Watch</button>
+          </div>
+        </div>
+        <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-slate-500 text-xs uppercase tracking-wider border-b border-slate-700">
+                <th class="text-left px-4 py-2.5">Ticker</th>
+                <th class="text-right px-4 py-2.5">Current</th>
+                <th class="text-right px-4 py-2.5">Target</th>
+                <th class="text-right px-4 py-2.5">Distance</th>
+                <th class="text-right px-4 py-2.5">Alert</th>
+                <th class="px-3 py-2.5"></th>
+              </tr>
+            </thead>
+            <tbody id="tbl-watch"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- REBALANCE -->
+      <div id="tab-rebal" class="p-4 hidden">
+        <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 mb-4">
+          <div class="flex items-center justify-between mb-4">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Target Allocations</div>
+            <div class="flex items-center gap-3">
+              <span id="lbl-total-pct" class="text-xs text-slate-400">Total: 0%</span>
+              <button onclick="autoBalance()" class="bg-slate-600 hover:bg-slate-500 px-3 py-1 rounded-lg text-xs transition-colors">Equal Weight</button>
+              <button onclick="calcRebal()" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1 rounded-lg text-xs font-medium transition-colors">Calculate</button>
+            </div>
+          </div>
+          <div id="rebal-inputs" class="space-y-2.5"></div>
+        </div>
+        <div id="rebal-results" class="hidden bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+          <div class="px-4 py-3 border-b border-slate-700 text-xs font-semibold text-slate-400 uppercase tracking-wider">Rebalancing Actions</div>
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-slate-500 text-xs uppercase tracking-wider border-b border-slate-700">
+                <th class="text-left px-4 py-2">Ticker</th>
+                <th class="text-right px-4 py-2">Current %</th>
+                <th class="text-right px-4 py-2">Target %</th>
+                <th class="text-right px-4 py-2">Drift</th>
+                <th class="text-right px-4 py-2">Action</th>
+                <th class="text-right px-4 py-2">Shares</th>
+                <th class="text-right px-4 py-2">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-rebal"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- end left -->
+
+  <!-- RIGHT: CHAT -->
+  <div class="w-88 flex flex-col border-l border-slate-700 flex-shrink-0" style="width:360px;background:#0d1623">
+    <div class="bg-slate-800 border-b border-slate-700 px-4 py-2.5 flex-shrink-0">
+      <div class="font-semibold text-sm text-white">AI Assistant</div>
+      <div class="text-xs text-slate-500">Ask anything about your portfolio</div>
+    </div>
+
+    <!-- Suggestions -->
+    <div class="px-3 py-2 border-b border-slate-700 flex flex-wrap gap-1.5 flex-shrink-0">
+      <button onclick="suggest('Am I too concentrated in any sector or position?')"         class="text-xs bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded-full text-slate-300 transition-colors">Concentration?</button>
+      <button onclick="suggest('Give me specific rebalancing suggestions for my portfolio.')" class="text-xs bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded-full text-slate-300 transition-colors">Rebalance</button>
+      <button onclick="suggest('What are my riskiest positions and why?')"                    class="text-xs bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded-full text-slate-300 transition-colors">Riskiest?</button>
+      <button onclick="suggest('Identify tax-loss harvesting opportunities in my portfolio.')" class="text-xs bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded-full text-slate-300 transition-colors">Tax-loss</button>
+      <button onclick="suggest('Summarize my overall portfolio performance and outlook.')"     class="text-xs bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded-full text-slate-300 transition-colors">Summary</button>
+    </div>
+
+    <!-- Messages -->
+    <div id="chat-msgs" class="flex-1 overflow-y-auto px-3 py-3 space-y-3">
+      <div class="flex gap-2">
+        <div class="w-6 h-6 rounded-full bg-emerald-600 flex-shrink-0 flex items-center justify-center text-xs font-bold mt-0.5">AI</div>
+        <div class="bg-slate-700 rounded-xl rounded-tl-sm px-3 py-2 text-sm text-slate-200 leading-relaxed">
+          Hello! I have full context of your holdings, values, and allocations. Ask me anything — concentration risk, rebalancing ideas, tax-loss harvesting, or performance analysis.
+        </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="px-3 py-3 border-t border-slate-700 flex-shrink-0">
+      <div class="flex gap-2">
+        <textarea id="chat-in" rows="2" placeholder="Ask about your portfolio…"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"
+          class="flex-1 bg-slate-700 border border-slate-600 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:border-emerald-500 placeholder-slate-500"></textarea>
+        <button id="btn-send" onclick="sendMsg()"
+          class="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 px-3 rounded-xl self-end py-2 transition-colors">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end main -->
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+const S = {
+  apiKey: '__GROQ_KEY__',
+  holdings: [
+    { ticker:'AAPL',  shares:10, avgCost:150, sector:'Technology' },
+    { ticker:'MSFT',  shares:5,  avgCost:280, sector:'Technology' },
+    { ticker:'NVDA',  shares:3,  avgCost:400, sector:'Technology' },
+    { ticker:'GOOGL', shares:4,  avgCost:130, sector:'Communication Services' },
+    { ticker:'BRK-B', shares:8,  avgCost:320, sector:'Financials' },
+    { ticker:'VTI',   shares:20, avgCost:200, sector:'ETF/Diversified' },
+  ],
+  watchlist: [],
+  prices: {},       // ticker → { price, prevClose, dayChange, dayChangePct }
+  targets: {},      // ticker → target %
+  streaming: false,
+  tab: 'holdings',
+};
+
+let charts = {};
+let refreshTimer = null;
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+async function init() {
+  renderHoldings();
+  renderRebalInputs();
+  renderWatch();
+  await refreshAll();
+  refreshTimer = setInterval(refreshAll, 60000);
+}
+
+// ── MARKET DATA ───────────────────────────────────────────────────────────
+async function fetchPrice(ticker) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const d = await r.json();
+    const meta = d?.chart?.result?.[0]?.meta;
+    if (!meta) return null;
+    const price = meta.regularMarketPrice ?? meta.chartPreviousClose ?? 0;
+    const prev  = meta.previousClose    ?? meta.chartPreviousClose ?? price;
+    return {
+      price,
+      prevClose: prev,
+      dayChange:    price - prev,
+      dayChangePct: prev ? ((price - prev) / prev * 100) : 0,
+    };
+  } catch { return null; }
+}
+
+async function refreshAll() {
+  const icon = document.getElementById('ico-refresh');
+  icon.classList.add('spin');
+
+  const tickers = [...new Set([
+    ...S.holdings.map(h => h.ticker),
+    ...S.watchlist.map(w => w.ticker),
+  ])];
+
+  await Promise.all(tickers.map(async t => {
+    const p = await fetchPrice(t);
+    if (p) S.prices[t] = p;
+  }));
+
+  const now = new Date();
+  document.getElementById('lbl-updated').textContent = `Updated ${now.toLocaleTimeString()}`;
+  icon.classList.remove('spin');
+
+  renderHoldings();
+  updateHeader();
+  renderWatch();
+  if (S.tab === 'charts') renderCharts();
+}
+
+// ── PORTFOLIO STATS ────────────────────────────────────────────────────────
+function stats() {
+  let totalValue = 0, totalCost = 0, totalDay = 0;
+  S.holdings.forEach(h => {
+    const p = S.prices[h.ticker];
+    const cost = h.shares * h.avgCost;
+    totalCost += cost;
+    const val = p ? h.shares * p.price : cost;
+    totalValue += val;
+    if (p) totalDay += h.shares * p.dayChange;
+  });
+  const gl = totalValue - totalCost;
+  const glPct = totalCost ? gl / totalCost * 100 : 0;
+  const prevTotal = totalValue - totalDay;
+  const dayPct = prevTotal ? totalDay / prevTotal * 100 : 0;
+  return { totalValue, totalCost, gl, glPct, totalDay, dayPct };
+}
+
+function updateHeader() {
+  const s = stats();
+  document.getElementById('hdr-value').textContent = $f(s.totalValue);
+
+  const glEl = document.getElementById('hdr-gl');
+  glEl.textContent = `${sign(s.gl)}${$f(s.gl)} (${sign(s.glPct)}${s.glPct.toFixed(2)}%)`;
+  glEl.className = `text-lg font-semibold ${s.gl >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
+
+  const dayEl = document.getElementById('hdr-day');
+  dayEl.textContent = `${sign(s.totalDay)}${$f(s.totalDay)} (${sign(s.dayPct)}${s.dayPct.toFixed(2)}%)`;
+  dayEl.className = `text-lg font-semibold ${s.totalDay >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
+}
+
+// ── HOLDINGS ───────────────────────────────────────────────────────────────
+function renderHoldings() {
+  updateHeader();
+  const s = stats();
+  const tbody = document.getElementById('tbl-holdings');
+  tbody.innerHTML = S.holdings.map(h => {
+    const p = S.prices[h.ticker];
+    const price = p ? p.price : null;
+    const val   = price != null ? h.shares * price : h.shares * h.avgCost;
+    const cost  = h.shares * h.avgCost;
+    const gl    = val - cost;
+    const glPct = cost ? gl / cost * 100 : 0;
+    const wt    = s.totalValue ? val / s.totalValue * 100 : 0;
+    const dayGl = p ? h.shares * p.dayChange : null;
+
+    return `<tr class="border-b border-slate-700/40 row-hover">
+      <td class="px-4 py-2.5">
+        <div class="font-bold text-white">${h.ticker}</div>
+        <div class="text-xs text-slate-500">${wt.toFixed(1)}%</div>
+      </td>
+      <td class="px-4 py-2.5 text-slate-500 text-xs hidden lg:table-cell">${h.sector}</td>
+      <td class="px-4 py-2.5 text-right text-slate-300">${h.shares}</td>
+      <td class="px-4 py-2.5 text-right text-slate-300">${$f(h.avgCost)}</td>
+      <td class="px-4 py-2.5 text-right font-medium text-white">${price != null ? $f(price) : '—'}</td>
+      <td class="px-4 py-2.5 text-right font-medium text-white">${$f(val)}</td>
+      <td class="px-4 py-2.5 text-right font-medium ${gl>=0?'text-emerald-400':'text-red-400'}">${sign(gl)}${$f(gl)}</td>
+      <td class="px-4 py-2.5 text-right font-medium ${glPct>=0?'text-emerald-400':'text-red-400'}">${sign(glPct)}${glPct.toFixed(2)}%</td>
+      <td class="px-4 py-2.5 text-right text-sm ${dayGl!=null?(dayGl>=0?'text-emerald-400':'text-red-400'):'text-slate-600'}">
+        ${dayGl != null ? `${sign(dayGl)}${$f(dayGl)}` : '—'}
+      </td>
+      <td class="px-3 py-2.5 text-right">
+        <button onclick="removeHolding('${h.ticker}')" class="text-slate-600 hover:text-red-400 text-xs transition-colors">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function addHolding() {
+  const ticker = document.getElementById('in-ticker').value.trim().toUpperCase();
+  const shares = parseFloat(document.getElementById('in-shares').value);
+  const cost   = parseFloat(document.getElementById('in-cost').value);
+  const sector = document.getElementById('in-sector').value;
+
+  if (!ticker || isNaN(shares) || isNaN(cost) || shares <= 0 || cost <= 0) {
+    alert('Enter a valid ticker, shares, and cost.'); return;
+  }
+  if (S.holdings.find(h => h.ticker === ticker)) {
+    alert('Already in portfolio. Remove first to re-add.'); return;
+  }
+
+  S.holdings.push({ ticker, shares, avgCost: cost, sector });
+  document.getElementById('in-ticker').value = '';
+  document.getElementById('in-shares').value = '';
+  document.getElementById('in-cost').value   = '';
+
+  fetchPrice(ticker).then(p => {
+    if (p) S.prices[ticker] = p;
+    renderHoldings();
+    renderRebalInputs();
+    if (S.tab === 'charts') renderCharts();
+  });
+}
+
+function removeHolding(ticker) {
+  S.holdings = S.holdings.filter(h => h.ticker !== ticker);
+  delete S.prices[ticker];
+  delete S.targets[ticker];
+  renderHoldings();
+  renderRebalInputs();
+  if (S.tab === 'charts') renderCharts();
+}
+
+// ── WATCHLIST ──────────────────────────────────────────────────────────────
+function addWatch() {
+  const ticker = document.getElementById('in-wticker').value.trim().toUpperCase();
+  const target = parseFloat(document.getElementById('in-wtarget').value);
+  if (!ticker || isNaN(target) || target <= 0) { alert('Enter a valid ticker and target price.'); return; }
+  if (S.watchlist.find(w => w.ticker === ticker)) { alert('Already watching.'); return; }
+  S.watchlist.push({ ticker, target });
+  document.getElementById('in-wticker').value = '';
+  document.getElementById('in-wtarget').value = '';
+  fetchPrice(ticker).then(p => { if (p) S.prices[ticker] = p; renderWatch(); });
+}
+
+function removeWatch(ticker) {
+  S.watchlist = S.watchlist.filter(w => w.ticker !== ticker);
+  renderWatch();
+}
+
+function renderWatch() {
+  const tbody = document.getElementById('tbl-watch');
+  if (!S.watchlist.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-600 text-sm">No items. Add a ticker above.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = S.watchlist.map(w => {
+    const p = S.prices[w.ticker];
+    const cur = p ? p.price : null;
+    const hit = cur != null && cur <= w.target;
+    const dist = cur != null ? (w.target - cur) / cur * 100 : null;
+    return `<tr class="border-b border-slate-700/40 ${hit ? 'bg-emerald-900/20' : ''}">
+      <td class="px-4 py-2.5 font-bold ${hit ? 'text-emerald-400' : 'text-white'}">${w.ticker}</td>
+      <td class="px-4 py-2.5 text-right text-slate-200">${cur != null ? $f(cur) : '—'}</td>
+      <td class="px-4 py-2.5 text-right text-emerald-400">${$f(w.target)}</td>
+      <td class="px-4 py-2.5 text-right ${dist!=null?(dist<=0?'text-emerald-400':'text-slate-400'):'text-slate-600'}">
+        ${dist != null ? `${sign(dist)}${dist.toFixed(2)}%` : '—'}
+      </td>
+      <td class="px-4 py-2.5 text-right">
+        ${hit
+          ? '<span class="bg-emerald-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">BUY ALERT</span>'
+          : '<span class="text-slate-600 text-xs">—</span>'}
+      </td>
+      <td class="px-3 py-2.5 text-right">
+        <button onclick="removeWatch('${w.ticker}')" class="text-slate-600 hover:text-red-400 text-xs transition-colors">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── REBALANCE ──────────────────────────────────────────────────────────────
+function renderRebalInputs() {
+  const c = document.getElementById('rebal-inputs');
+  c.innerHTML = S.holdings.map(h => {
+    const v = S.targets[h.ticker] ?? 0;
+    return `<div class="flex items-center gap-3">
+      <span class="w-16 text-sm font-bold text-white">${h.ticker}</span>
+      <input type="range" min="0" max="100" step="0.5" value="${v}"
+        oninput="S.targets['${h.ticker}']=+this.value; document.getElementById('tv-${h.ticker}').textContent=((+this.value).toFixed(1)+'%'); updateTotalPct()"
+        class="flex-1 accent-emerald-500 h-1.5">
+      <span id="tv-${h.ticker}" class="w-10 text-right text-sm text-emerald-400">${v.toFixed(1)}%</span>
+    </div>`;
+  }).join('');
+  updateTotalPct();
+}
+
+function updateTotalPct() {
+  const total = Object.values(S.targets).reduce((a, b) => a + b, 0);
+  const el = document.getElementById('lbl-total-pct');
+  el.textContent = `Total: ${total.toFixed(1)}%`;
+  el.className = `text-xs ${Math.abs(total - 100) < 0.5 ? 'text-emerald-400' : 'text-yellow-400'}`;
+}
+
+function autoBalance() {
+  const n = S.holdings.length;
+  if (!n) return;
+  const eq = 100 / n;
+  S.holdings.forEach(h => S.targets[h.ticker] = eq);
+  renderRebalInputs();
+}
+
+function calcRebal() {
+  const total = Object.values(S.targets).reduce((a, b) => a + b, 0);
+  if (Math.abs(total - 100) > 1) { alert(`Targets must sum to 100%. Currently ${total.toFixed(1)}%.`); return; }
+
+  const s = stats();
+  const tbody = document.getElementById('tbl-rebal');
+  tbody.innerHTML = S.holdings.map(h => {
+    const p    = S.prices[h.ticker];
+    const cur  = p ? p.price : h.avgCost;
+    const val  = h.shares * cur;
+    const curPct  = s.totalValue ? val / s.totalValue * 100 : 0;
+    const tgtPct  = S.targets[h.ticker] ?? 0;
+    const drift   = curPct - tgtPct;
+    const tgtVal  = s.totalValue * tgtPct / 100;
+    const delta   = tgtVal - val;
+    const shares  = delta / cur;
+    const act     = delta > 0 ? 'BUY' : 'SELL';
+
+    return `<tr class="border-b border-slate-700/40">
+      <td class="px-4 py-2 font-bold text-white">${h.ticker}</td>
+      <td class="px-4 py-2 text-right text-slate-300">${curPct.toFixed(1)}%</td>
+      <td class="px-4 py-2 text-right text-slate-300">${tgtPct.toFixed(1)}%</td>
+      <td class="px-4 py-2 text-right font-medium ${Math.abs(drift)<0.5?'text-slate-500':(drift>0?'text-red-400':'text-yellow-400')}">${sign(drift)}${drift.toFixed(1)}%</td>
+      <td class="px-4 py-2 text-right">
+        ${Math.abs(delta) < 5
+          ? '<span class="text-slate-500 text-xs">On target</span>'
+          : `<span class="font-semibold ${act==='BUY'?'text-emerald-400':'text-red-400'}">${act}</span>`}
+      </td>
+      <td class="px-4 py-2 text-right ${delta>=0?'text-emerald-400':'text-red-400'}">
+        ${Math.abs(delta) < 5 ? '—' : `${Math.abs(shares).toFixed(2)}`}
+      </td>
+      <td class="px-4 py-2 text-right ${delta>=0?'text-emerald-400':'text-red-400'}">
+        ${Math.abs(delta) < 5 ? '—' : $f(Math.abs(delta))}
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('rebal-results').classList.remove('hidden');
+}
+
+// ── CHARTS ─────────────────────────────────────────────────────────────────
+const COLORS = ['#10b981','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#84cc16','#a78bfa','#fb7185'];
+
+const CHART_BASE = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 }, padding: 8, boxWidth: 12 } } },
+};
+
+function renderCharts() {
+  const s = stats();
+
+  // position allocation
+  const posVals = S.holdings.map(h => {
+    const p = S.prices[h.ticker];
+    return h.shares * (p ? p.price : h.avgCost);
+  });
+
+  charts.alloc?.destroy();
+  charts.alloc = new Chart(document.getElementById('chart-alloc'), {
+    type: 'doughnut',
+    data: {
+      labels: S.holdings.map(h => h.ticker),
+      datasets: [{ data: posVals, backgroundColor: COLORS, borderColor: '#1e293b', borderWidth: 2 }],
+    },
+    options: {
+      ...CHART_BASE,
+      plugins: {
+        ...CHART_BASE.plugins,
+        tooltip: { callbacks: { label: ctx => {
+          const tot = ctx.dataset.data.reduce((a,b)=>a+b,0);
+          return ` ${ctx.label}: ${$f(ctx.raw)} (${(ctx.raw/tot*100).toFixed(1)}%)`;
+        }}},
+      },
+    },
+  });
+
+  // sector allocation
+  const secMap = {};
+  S.holdings.forEach(h => {
+    const p = S.prices[h.ticker];
+    secMap[h.sector] = (secMap[h.sector]||0) + h.shares * (p ? p.price : h.avgCost);
+  });
+
+  charts.sector?.destroy();
+  charts.sector = new Chart(document.getElementById('chart-sector'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(secMap),
+      datasets: [{ data: Object.values(secMap), backgroundColor: COLORS, borderColor: '#1e293b', borderWidth: 2 }],
+    },
+    options: {
+      ...CHART_BASE,
+      plugins: {
+        ...CHART_BASE.plugins,
+        tooltip: { callbacks: { label: ctx => {
+          const tot = ctx.dataset.data.reduce((a,b)=>a+b,0);
+          return ` ${ctx.label}: ${$f(ctx.raw)} (${(ctx.raw/tot*100).toFixed(1)}%)`;
+        }}},
+      },
+    },
+  });
+
+  // gain/loss bar
+  const glVals = S.holdings.map(h => {
+    const p = S.prices[h.ticker];
+    return h.shares * ((p ? p.price : h.avgCost) - h.avgCost);
+  });
+
+  charts.gl?.destroy();
+  charts.gl = new Chart(document.getElementById('chart-gl'), {
+    type: 'bar',
+    data: {
+      labels: S.holdings.map(h => h.ticker),
+      datasets: [{
+        data: glVals,
+        backgroundColor: glVals.map(v => v>=0 ? 'rgba(16,185,129,0.65)' : 'rgba(239,68,68,0.65)'),
+        borderColor:      glVals.map(v => v>=0 ? '#10b981' : '#ef4444'),
+        borderWidth: 1,
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      ...CHART_BASE,
+      plugins: { ...CHART_BASE.plugins, legend: { display: false } },
+      scales: {
+        x: { ticks: { color:'#94a3b8' }, grid: { color:'#1e293b' } },
+        y: { ticks: { color:'#94a3b8', callback: v => $f(v) }, grid: { color:'#334155' } },
+      },
+    },
+  });
+}
+
+// ── TABS ───────────────────────────────────────────────────────────────────
+function setTab(id) {
+  S.tab = id;
+  ['holdings','charts','watch','rebal'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== id);
+    const btn = document.getElementById(`t-${t}`);
+    btn.className = `px-5 py-2.5 text-sm font-medium transition-colors ${t===id ? 'tab-active' : 'tab-inactive'}`;
+  });
+  if (id === 'charts')  renderCharts();
+  if (id === 'rebal')   renderRebalInputs();
+}
+
+// ── CHAT ───────────────────────────────────────────────────────────────────
+function portfolioCtx() {
+  const s = stats();
+  const rows = S.holdings.map(h => {
+    const p   = S.prices[h.ticker];
+    const cur = p ? p.price : h.avgCost;
+    const val = h.shares * cur;
+    const gl  = val - h.shares * h.avgCost;
+    const wt  = s.totalValue ? val / s.totalValue * 100 : 0;
+    return `${h.ticker} (${h.sector}): ${h.shares} shares, avg cost $${h.avgCost}, current $${cur.toFixed(2)}, value $${val.toFixed(2)}, gain/loss $${gl.toFixed(2)} (${(h.shares*h.avgCost ? gl/(h.shares*h.avgCost)*100 : 0).toFixed(1)}%), weight ${wt.toFixed(1)}%`;
+  }).join('\n');
+
+  return `You are an expert AI portfolio assistant. You have real-time access to the user's holdings data.
+
+PORTFOLIO SUMMARY:
+Total Value: ${$f(s.totalValue)}
+Total Gain/Loss: ${sign(s.gl)}${$f(s.gl)} (${sign(s.glPct)}${s.glPct.toFixed(2)}%)
+Day Change: ${sign(s.totalDay)}${$f(s.totalDay)} (${sign(s.dayPct)}${s.dayPct.toFixed(2)}%)
+
+HOLDINGS:
+${rows}
+
+Be concise, specific, and actionable. Use numbers. This is for educational purposes only.`;
+}
+
+function suggest(text) {
+  document.getElementById('chat-in').value = text;
+  sendMsg();
+}
+
+async function sendMsg() {
+  const inp = document.getElementById('chat-in');
+  const text = inp.value.trim();
+  if (!text || S.streaming) return;
+  if (!S.apiKey) { addMsg('sys', 'Enter your Anthropic API key at the top.'); return; }
+
+  inp.value = '';
+  addMsg('user', text);
+  await stream(text);
+}
+
+function addMsg(role, text) {
+  const wrap = document.getElementById('chat-msgs');
+  const div = document.createElement('div');
+  div.className = 'flex gap-2';
+
+  if (role === 'user') {
+    div.innerHTML = `<div class="flex-1 flex justify-end">
+      <div class="bg-emerald-800/50 border border-emerald-700/30 rounded-xl rounded-tr-sm px-3 py-2 text-sm text-slate-100 max-w-[260px]">${esc(text)}</div>
+    </div>`;
+  } else if (role === 'ai') {
+    div.innerHTML = `
+      <div class="w-6 h-6 rounded-full bg-emerald-600 flex-shrink-0 flex items-center justify-center text-xs font-bold mt-0.5">AI</div>
+      <div class="prose-chat bg-slate-700 rounded-xl rounded-tl-sm px-3 py-2 text-sm text-slate-200 leading-relaxed max-w-[270px]"></div>`;
+  } else {
+    div.innerHTML = `
+      <div class="w-6 h-6 rounded-full bg-slate-600 flex-shrink-0 flex items-center justify-center text-xs mt-0.5">!</div>
+      <div class="bg-slate-700/60 rounded-xl px-3 py-2 text-sm text-yellow-400 max-w-[270px]">${esc(text)}</div>`;
+  }
+
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+  return div;
+}
+
+async function stream(userMsg) {
+  S.streaming = true;
+  document.getElementById('btn-send').disabled = true;
+
+  const msgDiv = addMsg('ai', '');
+  const el = msgDiv.querySelector('.prose-chat');
+  el.classList.add('cursor');
+  let acc = '';
+
+  try {
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${S.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 1024,
+        stream: true,
+        messages: [
+          { role: 'system', content: portfolioCtx() },
+          { role: 'user',   content: userMsg },
+        ],
+      }),
+    });
+
+    if (!resp.ok) {
+      const e = await resp.text();
+      throw new Error(`API ${resp.status}: ${e.slice(0,200)}`);
+    }
+
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop() ?? '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (!raw || raw === '[DONE]') continue;
+        try {
+          const obj = JSON.parse(raw);
+          const token = obj.choices?.[0]?.delta?.content;
+          if (token) {
+            acc += token;
+            el.innerHTML = md(acc);
+          }
+        } catch {}
+      }
+      document.getElementById('chat-msgs').scrollTop = 99999;
+    }
+  } catch (e) {
+    el.innerHTML = `<span class="text-red-400">Error: ${esc(e.message)}</span>`;
+  } finally {
+    el.classList.remove('cursor');
+    S.streaming = false;
+    document.getElementById('btn-send').disabled = false;
+    document.getElementById('chat-msgs').scrollTop = 99999;
+  }
+}
+
+// simple markdown → html (escapes first)
+function md(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^#{1,3} (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^[-•] (.+)$/gm,'<li>$1</li>')
+    .replace(/\n/g,'<br>');
+}
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+const FMT = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2});
+function $f(n) { return FMT.format(n); }
+function sign(n) { return n >= 0 ? '+' : ''; }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── START ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
