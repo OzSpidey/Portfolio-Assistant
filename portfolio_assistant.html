@@ -74,6 +74,7 @@
       <button onclick="setTab('charts')"   id="t-charts"   class="px-5 py-2.5 text-sm font-medium tab-inactive transition-colors">Charts</button>
       <button onclick="setTab('watch')"    id="t-watch"    class="px-5 py-2.5 text-sm font-medium tab-inactive transition-colors">Watchlist</button>
       <button onclick="setTab('rebal')"    id="t-rebal"    class="px-5 py-2.5 text-sm font-medium tab-inactive transition-colors">Rebalance</button>
+      <button onclick="setTab('risk')"     id="t-risk"     class="px-5 py-2.5 text-sm font-medium tab-inactive transition-colors">Risk ⚡</button>
     </div>
 
     <!-- TAB CONTENT -->
@@ -200,6 +201,98 @@
         </div>
       </div>
 
+      <!-- RISK -->
+      <div id="tab-risk" class="p-4 hidden">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="text-sm font-semibold text-white">Quantitative Risk Analysis</div>
+            <div class="text-xs text-slate-500 mt-0.5">Sharpe · Sortino · VaR · Max Drawdown · Correlation — based on 90-day historical returns</div>
+          </div>
+          <button onclick="loadRisk()" id="btn-risk"
+            class="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <svg id="ico-risk" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            Analyze Portfolio
+          </button>
+        </div>
+
+        <!-- Loading -->
+        <div id="risk-loading" class="hidden py-16 text-center text-slate-400">
+          <svg class="w-8 h-8 mx-auto mb-3 spin text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <div class="text-sm">Fetching 90 days of historical data for all positions + SPY…</div>
+        </div>
+
+        <!-- Content -->
+        <div id="risk-content" class="hidden space-y-4">
+
+          <!-- Portfolio summary cards -->
+          <div class="grid grid-cols-4 gap-3">
+            <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center">
+              <div class="text-xs text-slate-500 uppercase tracking-wider mb-1">Portfolio Vol</div>
+              <div id="r-port-vol" class="text-2xl font-bold text-violet-400">—</div>
+              <div class="text-xs text-slate-500 mt-1">annualized</div>
+            </div>
+            <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center">
+              <div class="text-xs text-slate-500 uppercase tracking-wider mb-1">Sharpe Ratio</div>
+              <div id="r-port-sharpe" class="text-2xl font-bold text-slate-300">—</div>
+              <div class="text-xs text-slate-500 mt-1">rf = 5% ann.</div>
+            </div>
+            <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center">
+              <div class="text-xs text-slate-500 uppercase tracking-wider mb-1">1-Day 95% VaR</div>
+              <div id="r-var" class="text-2xl font-bold text-red-400">—</div>
+              <div class="text-xs text-slate-500 mt-1">historical sim</div>
+            </div>
+            <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 text-center">
+              <div class="text-xs text-slate-500 uppercase tracking-wider mb-1">Max Drawdown</div>
+              <div id="r-port-mdd" class="text-2xl font-bold text-red-400">—</div>
+              <div class="text-xs text-slate-500 mt-1">90-day peak→trough</div>
+            </div>
+          </div>
+
+          <!-- CVaR note -->
+          <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl px-4 py-2.5 flex items-center gap-3 text-xs text-slate-400">
+            <span class="text-violet-400 font-semibold">CVaR (Expected Shortfall):</span>
+            <span id="r-cvar">—</span>
+            <span class="text-slate-600">·</span>
+            <span class="text-slate-500">Average daily loss on the worst 5% of trading days</span>
+          </div>
+
+          <!-- Per-position risk table -->
+          <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-700 text-xs font-semibold text-slate-400 uppercase tracking-wider">Per-Position Risk Metrics</div>
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-slate-500 text-xs uppercase tracking-wider border-b border-slate-700">
+                  <th class="text-left px-4 py-2.5">Ticker</th>
+                  <th class="text-right px-4 py-2.5">Ann. Vol</th>
+                  <th class="text-right px-4 py-2.5">Sharpe</th>
+                  <th class="text-right px-4 py-2.5">Sortino</th>
+                  <th class="text-right px-4 py-2.5">Max DD</th>
+                  <th class="text-right px-4 py-2.5">Beta (SPY)</th>
+                </tr>
+              </thead>
+              <tbody id="tbl-risk"></tbody>
+            </table>
+          </div>
+
+          <!-- Correlation heatmap -->
+          <div class="bg-slate-800 rounded-xl border border-slate-700 p-4">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">90-Day Return Correlation Matrix</div>
+            <div class="text-xs text-slate-600 mb-3">Green = positive correlation · Red = negative · Values closer to 0 = better diversification</div>
+            <div id="corr-heatmap" class="overflow-x-auto"></div>
+          </div>
+
+        </div><!-- end risk-content -->
+
+        <!-- Empty state before first load -->
+        <div id="risk-empty" class="py-16 text-center text-slate-600">
+          <svg class="w-10 h-10 mx-auto mb-3 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <div class="text-sm">Click <span class="text-violet-400 font-medium">Analyze Portfolio</span> to compute risk metrics</div>
+        </div>
+
+      </div><!-- end tab-risk -->
+
     </div>
   </div><!-- end left -->
 
@@ -262,6 +355,7 @@ const S = {
   targets: {},      // ticker → target %
   streaming: false,
   tab: 'holdings',
+  history: {},   // ticker → price array (90-day)
 };
 
 let charts = {};
@@ -634,16 +728,213 @@ function renderCharts() {
   });
 }
 
+// ── RISK ───────────────────────────────────────────────────────────────────
+
+async function fetchHistory(ticker) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=3mo`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const d = await r.json();
+    const closes = d?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
+    if (!closes) return null;
+    const out = [];
+    for (let i = 0; i < closes.length; i++) {
+      if (closes[i] != null) out.push(closes[i]);
+      else if (out.length) out.push(out[out.length - 1]);
+    }
+    return out.length > 10 ? out : null;
+  } catch { return null; }
+}
+
+function dailyReturns(prices) {
+  const r = [];
+  for (let i = 1; i < prices.length; i++) r.push((prices[i] - prices[i-1]) / prices[i-1]);
+  return r;
+}
+
+function _mean(a) { return a.reduce((s,v) => s+v, 0) / a.length; }
+
+function _std(a) {
+  const m = _mean(a);
+  return Math.sqrt(a.reduce((s,v) => s + (v-m)**2, 0) / (a.length - 1));
+}
+
+function annualVol(returns) { return _std(returns) * Math.sqrt(252); }
+
+function sharpeRatio(returns, rf = 0.05) {
+  const dailyRf = rf / 252;
+  const excess  = returns.map(r => r - dailyRf);
+  const s = _std(excess);
+  return s > 0 ? _mean(excess) / s * Math.sqrt(252) : 0;
+}
+
+function sortinoRatio(returns, rf = 0.05) {
+  const dailyRf   = rf / 252;
+  const excess    = returns.map(r => r - dailyRf);
+  const downside  = returns.map(r => Math.min(r - dailyRf, 0) ** 2);
+  const downDev   = Math.sqrt(_mean(downside)) * Math.sqrt(252);
+  return downDev > 0 ? _mean(excess) * 252 / downDev : 0;
+}
+
+function maxDrawdown(prices) {
+  let peak = prices[0], mdd = 0;
+  for (const p of prices) {
+    if (p > peak) peak = p;
+    const dd = (p - peak) / peak;
+    if (dd < mdd) mdd = dd;
+  }
+  return mdd;
+}
+
+function calcBeta(stockRet, mktRet) {
+  const n   = Math.min(stockRet.length, mktRet.length);
+  const sr  = stockRet.slice(0, n), mr = mktRet.slice(0, n);
+  const ms  = _mean(sr), mm = _mean(mr);
+  const cov = sr.reduce((acc, r, i) => acc + (r - ms) * (mr[i] - mm), 0) / (n - 1);
+  const vm  = mr.reduce((acc, r) => acc + (r - mm) ** 2, 0) / (n - 1);
+  return vm > 0 ? cov / vm : 1;
+}
+
+function calcCorrelation(x, y) {
+  const n  = Math.min(x.length, y.length);
+  const xa = x.slice(0, n), ya = y.slice(0, n);
+  const mx = _mean(xa), my = _mean(ya);
+  let num = 0, dx = 0, dy = 0;
+  for (let i = 0; i < n; i++) {
+    num += (xa[i]-mx) * (ya[i]-my);
+    dx  += (xa[i]-mx) ** 2;
+    dy  += (ya[i]-my) ** 2;
+  }
+  return dx && dy ? num / Math.sqrt(dx * dy) : 0;
+}
+
+function calcVaR(allReturns, curPrices, sharesArr, conf = 0.05) {
+  const n   = Math.min(...allReturns.map(r => r.length));
+  const pnl = [];
+  for (let t = 0; t < n; t++) {
+    let day = 0;
+    allReturns.forEach((ret, i) => { day += ret[t] * curPrices[i] * sharesArr[i]; });
+    pnl.push(day);
+  }
+  pnl.sort((a, b) => a - b);
+  const cut = Math.floor(pnl.length * conf);
+  return {
+    var95: pnl[cut],
+    cvar:  _mean(pnl.slice(0, cut + 1)),
+  };
+}
+
+function corrColor(c) {
+  if (c >= 0) return `rgba(16,185,129,${(0.15 + c * 0.75).toFixed(2)})`;
+  return `rgba(239,68,68,${(0.15 + (-c) * 0.75).toFixed(2)})`;
+}
+
+async function loadRisk() {
+  const btn = document.getElementById('btn-risk');
+  btn.disabled = true;
+  document.getElementById('risk-empty').classList.add('hidden');
+  document.getElementById('risk-content').classList.add('hidden');
+  document.getElementById('risk-loading').classList.remove('hidden');
+  document.getElementById('ico-risk').classList.add('spin');
+
+  const holdTickers = S.holdings.map(h => h.ticker);
+  const allTickers  = [...holdTickers, 'SPY'];
+  const fetched     = await Promise.all(allTickers.map(fetchHistory));
+  allTickers.forEach((t, i) => { if (fetched[i]) S.history[t] = fetched[i]; });
+
+  const retMap = {};
+  allTickers.forEach(t => { if (S.history[t]) retMap[t] = dailyReturns(S.history[t]); });
+
+  const spyRet  = retMap['SPY'] ?? null;
+  const valid   = holdTickers.filter(t => retMap[t]);
+  const prices  = valid.map(t => S.prices[t]?.price ?? S.holdings.find(h=>h.ticker===t).avgCost);
+  const shares  = valid.map(t => S.holdings.find(h=>h.ticker===t).shares);
+  const rets    = valid.map(t => retMap[t]);
+
+  // weighted portfolio daily returns
+  const totalV  = valid.reduce((s, t, i) => s + prices[i] * shares[i], 0);
+  const wts     = valid.map((t, i) => prices[i] * shares[i] / totalV);
+  const minLen  = Math.min(...rets.map(r => r.length));
+  const portRet = [];
+  for (let t = 0; t < minLen; t++)
+    portRet.push(rets.reduce((s, r, i) => s + wts[i] * r[t], 0));
+
+  // cumulative portfolio value for portfolio-level max drawdown
+  const portPx  = portRet.reduce((acc, r) => [...acc, acc[acc.length-1] * (1+r)], [1]);
+  const portVol = annualVol(portRet);
+  const portSh  = sharpeRatio(portRet);
+  const portMDD = maxDrawdown(portPx);
+  const { var95, cvar } = calcVaR(rets, prices, shares);
+
+  // update summary cards
+  document.getElementById('r-port-vol').textContent    = (portVol * 100).toFixed(1) + '%';
+  document.getElementById('r-port-mdd').textContent    = (portMDD * 100).toFixed(1) + '%';
+  document.getElementById('r-var').textContent         = $f(var95);
+  document.getElementById('r-cvar').textContent        = `${$f(cvar)} avg on worst 5% of days`;
+
+  const shEl = document.getElementById('r-port-sharpe');
+  shEl.textContent = portSh.toFixed(2);
+  shEl.className   = `text-2xl font-bold ${portSh >= 1 ? 'text-emerald-400' : portSh >= 0 ? 'text-yellow-400' : 'text-red-400'}`;
+
+  // per-position table
+  document.getElementById('tbl-risk').innerHTML = S.holdings.map(h => {
+    const ret = retMap[h.ticker];
+    if (!ret) return `<tr><td colspan="6" class="px-4 py-2.5 text-slate-600 text-xs">${h.ticker}: data unavailable</td></tr>`;
+    const px  = S.history[h.ticker];
+    const vol = annualVol(ret);
+    const sh  = sharpeRatio(ret);
+    const so  = sortinoRatio(ret);
+    const mdd = maxDrawdown(px);
+    const b   = spyRet ? calcBeta(ret, spyRet) : null;
+    return `<tr class="border-b border-slate-700/40 row-hover">
+      <td class="px-4 py-2.5 font-bold text-white">${h.ticker}</td>
+      <td class="px-4 py-2.5 text-right font-medium text-violet-400">${(vol*100).toFixed(1)}%</td>
+      <td class="px-4 py-2.5 text-right font-medium ${sh>=1?'text-emerald-400':sh>=0?'text-yellow-400':'text-red-400'}">${sh.toFixed(2)}</td>
+      <td class="px-4 py-2.5 text-right font-medium ${so>=1?'text-emerald-400':so>=0?'text-yellow-400':'text-red-400'}">${so.toFixed(2)}</td>
+      <td class="px-4 py-2.5 text-right font-medium text-red-400">${(mdd*100).toFixed(1)}%</td>
+      <td class="px-4 py-2.5 text-right font-medium ${b==null?'text-slate-600':b>1.3?'text-red-400':b<0.8?'text-emerald-400':'text-yellow-400'}">${b!=null?b.toFixed(2):'—'}</td>
+    </tr>`;
+  }).join('');
+
+  // correlation heatmap
+  const heatRet = valid.map(t => retMap[t]);
+  const corrM   = valid.map((t1, i) => valid.map((t2, j) => calcCorrelation(heatRet[i], heatRet[j])));
+
+  document.getElementById('corr-heatmap').innerHTML = `
+    <table class="text-xs border-collapse w-full">
+      <tr>
+        <td class="pr-3 py-1"></td>
+        ${valid.map(t => `<td class="px-3 py-1 text-center font-bold text-slate-400" style="min-width:56px">${t}</td>`).join('')}
+      </tr>
+      ${corrM.map((row, i) => `
+        <tr>
+          <td class="pr-3 py-1 font-bold text-slate-400 whitespace-nowrap">${valid[i]}</td>
+          ${row.map((c, j) => {
+            const diag = i === j;
+            const bg   = diag ? '#334155' : corrColor(c);
+            const cls  = diag ? 'text-slate-400' : Math.abs(c) > 0.7 ? 'text-white font-bold' : 'text-slate-200';
+            return `<td style="background:${bg};min-width:56px" class="px-3 py-2 text-center rounded-sm ${cls}">${diag ? '1.00' : c.toFixed(2)}</td>`;
+          }).join('')}
+        </tr>`).join('')}
+    </table>`;
+
+  document.getElementById('risk-loading').classList.add('hidden');
+  document.getElementById('risk-content').classList.remove('hidden');
+  btn.disabled = false;
+  document.getElementById('ico-risk').classList.remove('spin');
+}
+
 // ── TABS ───────────────────────────────────────────────────────────────────
 function setTab(id) {
   S.tab = id;
-  ['holdings','charts','watch','rebal'].forEach(t => {
+  ['holdings','charts','watch','rebal','risk'].forEach(t => {
     document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== id);
     const btn = document.getElementById(`t-${t}`);
     btn.className = `px-5 py-2.5 text-sm font-medium transition-colors ${t===id ? 'tab-active' : 'tab-inactive'}`;
   });
-  if (id === 'charts')  renderCharts();
-  if (id === 'rebal')   renderRebalInputs();
+  if (id === 'charts') renderCharts();
+  if (id === 'rebal')  renderRebalInputs();
 }
 
 // ── CHAT ───────────────────────────────────────────────────────────────────
