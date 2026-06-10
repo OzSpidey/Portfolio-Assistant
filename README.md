@@ -1,6 +1,6 @@
 # Portfolio AI Assistant
 
-> A zero-install, AI-powered quantitative portfolio dashboard that lives in a **single HTML file** — live prices, institutional-grade risk analytics, Monte Carlo simulation, an efficient frontier optimizer, rolling metrics, Black-Scholes options pricing, performance attribution, and a streaming AI chat that knows your exact holdings.
+> A zero-install, AI-powered quantitative portfolio dashboard that lives in a **single HTML file**, live prices, institutional-grade risk analytics, Monte Carlo simulation, an efficient frontier optimizer, rolling metrics, Black-Scholes options pricing, performance attribution, and a streaming AI chat that knows your exact holdings.
 
 ![status](https://img.shields.io/badge/status-live-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-blue)
@@ -16,10 +16,10 @@
 Most portfolio tools are either bloated SaaS apps that need an account, or bare-bones spreadsheets with no intelligence. This one is different:
 
 - **No account. No install. No server.** Open one HTML file and you're live in seconds.
-- **Real market data** — prices refresh automatically every 60 seconds straight from Yahoo Finance.
-- **An AI that knows your actual portfolio** — not generic financial advice, but answers specific to your holdings, weights, and gain/loss figures.
-- **Quant-grade analytics in the browser** — the same metrics a risk desk uses (VaR, CVaR, Sortino, Beta, Cholesky-correlated Monte Carlo) run entirely client-side with no backend.
-- **10 tools in one screen** — from a simple P&L table all the way to options Greeks and the efficient frontier.
+- **Real market data**, prices refresh automatically every 60 seconds straight from Yahoo Finance.
+- **An AI that knows your actual portfolio**, not generic financial advice, but answers specific to your holdings, weights, and gain/loss figures.
+- **Quant-grade analytics in the browser**, the same metrics a risk desk uses (VaR, CVaR, Sortino, Beta, Cholesky-correlated Monte Carlo) run entirely client-side with no backend.
+- **10 tools in one screen**, from a simple P&L table all the way to options Greeks and the efficient frontier.
 
 ---
 
@@ -29,7 +29,7 @@ Most portfolio tools are either bloated SaaS apps that need an account, or bare-
 |---|-----|-------------|
 | 1 | **Holdings** | Live P&L table with cost basis, unrealized gains, weights, day change |
 | 2 | **Charts** | Allocation donut by position, allocation donut by sector, gain/loss bar chart |
-| 3 | **Watchlist** | Track any ticker with a target buy price — lights up with BUY ALERT when triggered |
+| 3 | **Watchlist** | Track any ticker with a target buy price, lights up with BUY ALERT when triggered |
 | 4 | **Rebalance** | Slider-based target allocations → exact buy/sell orders in shares and dollars |
 | 5 | **Risk ⚡** | Sharpe, Sortino, VaR, CVaR, Max Drawdown, Beta, full correlation heatmap |
 | 6 | **Monte Carlo** | 500 correlated GBM paths, Cholesky covariance, P5/P50/P95 fan chart |
@@ -65,15 +65,15 @@ The top bar always shows your live **total value**, **cumulative gain/loss**, an
 
 Three Chart.js charts in the Charts tab:
 
-- **Allocation by Position** — donut chart showing each ticker's weight in the portfolio
-- **Allocation by Sector** — same data grouped by sector (Technology, Financials, ETF, etc.)
-- **Gain/Loss Bar Chart** — side-by-side bars of unrealized P&L per position, making outliers immediately obvious
+- **Allocation by Position**, donut chart showing each ticker's weight in the portfolio
+- **Allocation by Sector**, same data grouped by sector (Technology, Financials, ETF, etc.)
+- **Gain/Loss Bar Chart**, side-by-side bars of unrealized P&L per position, making outliers immediately obvious
 
 ---
 
 ### 3. AI Portfolio Chat (Streaming)
 
-A persistent chat sidebar powered by **Llama 3.3 70B via Groq**. The entire portfolio state — every ticker, shares, cost basis, current price, unrealized gain/loss, weight, sector — is injected as the system prompt before every message. Responses stream in token-by-token via SSE.
+A persistent chat sidebar powered by **Llama 3.3 70B via Groq**. The entire portfolio state, every ticker, shares, cost basis, current price, unrealized gain/loss, weight, sector, is injected as the system prompt before every message. Responses stream in token-by-token via SSE.
 
 Pre-built prompts to get started immediately:
 - *"Am I too concentrated in any sector?"*
@@ -82,7 +82,7 @@ Pre-built prompts to get started immediately:
 - *"Identify tax-loss harvesting opportunities"*
 - *"Summarize my portfolio performance"*
 
-Because the model has your exact numbers, it gives specific, actionable analysis — not generic disclaimers.
+Because the model has your exact numbers, it gives specific, actionable analysis, not generic disclaimers.
 
 ---
 
@@ -101,13 +101,13 @@ Set a target % allocation per holding using sliders, or hit **Equal Weight** to 
 - Number of shares to trade
 - Exact dollar amount of each trade
 
-All math assumes current live prices — no manual updates needed.
+All math assumes current live prices, no manual updates needed.
 
 ---
 
 ### 6. Risk Analytics ⚡
 
-All metrics are computed from **90 days of daily closing prices** fetched from Yahoo Finance. No third-party risk service, no API key — pure browser math.
+All metrics are computed from **90 days of daily closing prices** fetched from Yahoo Finance. No third-party risk service, no API key, pure browser math.
 
 #### Sharpe Ratio
 ```
@@ -119,7 +119,7 @@ Where `R_p` is the annualized portfolio return (geometric), `R_f` is the risk-fr
 ```
 Sortino = (R_p − R_f) / σ_downside
 ```
-Same as Sharpe but the denominator only counts days where the portfolio return was negative — penalizing downside risk rather than total volatility. A higher Sortino than Sharpe means your positive days have more variance than your negative days, which is good.
+Same as Sharpe but the denominator only counts days where the portfolio return was negative, penalizing downside risk rather than total volatility. A higher Sortino than Sharpe means your positive days have more variance than your negative days, which is good.
 
 #### Annualized Volatility
 ```
@@ -133,11 +133,11 @@ MDD = max over t of (peak_t − trough_t) / peak_t
 ```
 Scans the full 90-day cumulative return series to find the worst peak-to-trough loss. A drawdown of -18% means at some point the portfolio fell 18% from its previous high within the window.
 
-#### Value at Risk (VaR 95%) — Historical Simulation
+#### Value at Risk (VaR 95%), Historical Simulation
 ```
 VaR_95 = −percentile(daily_returns, 5)
 ```
-The loss you would not expect to exceed on 95% of trading days, based on the actual historical distribution of returns. No normality assumption — uses the empirical 5th percentile directly.
+The loss you would not expect to exceed on 95% of trading days, based on the actual historical distribution of returns. No normality assumption, uses the empirical 5th percentile directly.
 
 #### Conditional VaR / Expected Shortfall (CVaR 95%)
 ```
@@ -158,23 +158,23 @@ Full pairwise Pearson correlation matrix across all holdings. Each cell shows `C
 
 ### 7. Monte Carlo Simulation
 
-Models future portfolio value using **correlated Geometric Brownian Motion** — the same framework used in institutional risk systems.
+Models future portfolio value using **correlated Geometric Brownian Motion**, the same framework used in institutional risk systems.
 
 #### How It Works
 
-**Step 1 — Estimate parameters from history**
+**Step 1, Estimate parameters from history**
 
 For each asset `i`, compute:
 - `μ_i` = mean daily log-return (annualized: `× 252`)
 - `σ_i` = standard deviation of daily log-returns (annualized: `× √252`)
 
-**Step 2 — Build the covariance matrix**
+**Step 2, Build the covariance matrix**
 
 ```
 Σ_{ij} = Corr(R_i, R_j) × σ_i × σ_j
 ```
 
-**Step 3 — Cholesky decomposition**
+**Step 3, Cholesky decomposition**
 
 Factor `Σ = L Lᵀ` where `L` is lower-triangular. This lets us transform independent standard normal draws into correlated ones:
 
@@ -187,7 +187,7 @@ where `z_independent ~ N(0,1)` per asset per time step, generated via the **Box-
 z = √(−2 ln U₁) × cos(2π U₂),   U₁, U₂ ~ Uniform(0,1)
 ```
 
-**Step 4 — Simulate GBM paths**
+**Step 4, Simulate GBM paths**
 
 For each of 500 simulations and each of 252 time steps:
 ```
@@ -196,7 +196,7 @@ S_{t+1} = S_t × exp((μ − σ²/2)Δt + σ√Δt × z_correlated)
 
 Portfolio value is the weighted sum across all assets at each step.
 
-**Step 5 — Summarize**
+**Step 5, Summarize**
 
 Extracts P5, P50, P95 envelope at each time step. Displays:
 - Fan chart with shaded confidence band
@@ -206,11 +206,11 @@ Extracts P5, P50, P95 envelope at each time step. Displays:
 
 ### 8. Efficient Frontier
 
-Approximates the **Markowitz mean-variance efficient frontier** using random portfolio sampling — no quadratic programming required.
+Approximates the **Markowitz mean-variance efficient frontier** using random portfolio sampling, no quadratic programming required.
 
 #### How It Works
 
-**Step 1 — Sample random portfolios**
+**Step 1, Sample random portfolios**
 
 Generate 2,000 weight vectors using a Dirichlet-like approach:
 ```
@@ -218,7 +218,7 @@ w_i = −log(U_i) / Σ_j (−log(U_j)),   U_i ~ Uniform(0,1)
 ```
 This produces uniformly distributed weight vectors that sum to 1 with all weights positive.
 
-**Step 2 — Compute portfolio metrics for each**
+**Step 2, Compute portfolio metrics for each**
 
 For each weight vector `w`:
 ```
@@ -227,13 +227,13 @@ R_p  = wᵀ μ                              (expected annual return)
 Sharpe = (R_p − R_f) / σ_p
 ```
 
-**Step 3 — Plot and annotate**
+**Step 3, Plot and annotate**
 
 - Each portfolio is a point on a return vs. volatility scatter chart
 - Points are colored by Sharpe ratio (dark = low, bright = high)
 - The **minimum volatility** portfolio (leftmost point) and **maximum Sharpe** portfolio (tangency point) are auto-annotated with their exact per-ticker weightings
 
-The upper-left envelope of the scatter cloud is the efficient frontier — any portfolio below it has the same risk for less return, or the same return for more risk.
+The upper-left envelope of the scatter cloud is the efficient frontier, any portfolio below it has the same risk for less return, or the same return for more risk.
 
 ---
 
@@ -281,7 +281,7 @@ Put  = K × e^(−rT) × N(−d₂) − S × N(−d₁)
 | Greek | Formula | Interpretation |
 |-------|---------|----------------|
 | **Delta (Δ)** | `N(d₁)` for call, `N(d₁)−1` for put | $ change in option per $1 move in underlying |
-| **Gamma (Γ)** | `N'(d₁) / (S σ √T)` | Rate of change of Delta per $1 move — curvature |
+| **Gamma (Γ)** | `N'(d₁) / (S σ √T)` | Rate of change of Delta per $1 move, curvature |
 | **Theta (Θ)** | `−[S N'(d₁) σ / (2√T)] − rK e^(−rT) N(d₂)` | Time decay: $ lost per day |
 | **Vega (V)** | `S N'(d₁) √T` | $ change per 1% move in implied vol |
 | **Rho (ρ)** | `KT e^(−rT) N(d₂)` for call | $ change per 1% move in risk-free rate |
@@ -320,11 +320,11 @@ Green bars above the SPY line = alpha generators. Red bars below = drag on relat
 |---|---|---|
 | UI Framework | [Tailwind CSS](https://tailwindcss.com) via CDN | Dark theme, utility-first, zero build step |
 | Charts | [Chart.js 4.4](https://www.chartjs.org) via cdnjs | Donut, bar, scatter, and line charts |
-| Market Data | [Yahoo Finance v8 API](https://query1.finance.yahoo.com) | Free, no key — live prices + 90-day OHLCV history |
+| Market Data | [Yahoo Finance v8 API](https://query1.finance.yahoo.com) | Free, no key, live prices + 90-day OHLCV history |
 | AI Model | [Llama 3.3 70B Versatile](https://groq.com) via Groq | State-of-the-art open model, free tier available |
 | AI Streaming | Groq OpenAI-compatible API + `ReadableStream` / SSE | Token-by-token streaming in the browser |
-| Quant Math | Vanilla JS | Cholesky, Box-Muller, Black-Scholes, Pearson correlation — no libraries |
-| Runtime | Vanilla JavaScript | No React, no bundler, no build step — just open the file |
+| Quant Math | Vanilla JS | Cholesky, Box-Muller, Black-Scholes, Pearson correlation, no libraries |
+| Runtime | Vanilla JavaScript | No React, no bundler, no build step, just open the file |
 | Launcher | Python 3 + `python-dotenv` + `webbrowser` | Injects API key at runtime, never commits it |
 
 ---
@@ -333,7 +333,7 @@ Green bars above the SPY line = alpha generators. Red bars below = drag on relat
 
 ### Prerequisites
 - Python 3.8+
-- A free Groq API key — get one at [console.groq.com](https://console.groq.com) (takes 30 seconds, no credit card)
+- A free Groq API key, get one at [console.groq.com](https://console.groq.com) (takes 30 seconds, no credit card)
 
 ### 1. Clone the repo
 ```bash
@@ -371,7 +371,7 @@ The launcher reads your key from `.env`, injects it into the HTML, writes a temp
 2. Replaces the `__GROQ_KEY__` placeholder in `portfolio_assistant.html` with the real key in memory
 3. Writes a temp file (`tmp_portfolio_*.html`) and opens it via `webbrowser.open()`
 
-The HTML file you commit contains only `__GROQ_KEY__` — the real key never touches git. The temp file is listed in `.gitignore` and deleted on the next run.
+The HTML file you commit contains only `__GROQ_KEY__`, the real key never touches git. The temp file is listed in `.gitignore` and deleted on the next run.
 
 ---
 
@@ -409,10 +409,10 @@ The analytics tabs cover concepts that appear regularly in quant researcher and 
 | Performance attribution / Brinson model | Attribution tab |
 | Rolling Sharpe / regime detection | Rolling Metrics tab |
 
-Every formula shown above is implemented from scratch in vanilla JavaScript — no math libraries.
+Every formula shown above is implemented from scratch in vanilla JavaScript, no math libraries.
 
 ---
 
 ## License
 
-MIT — use it, fork it, build on it.
+MIT, use it, fork it, build on it.
